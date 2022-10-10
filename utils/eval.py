@@ -38,7 +38,8 @@ def eval_file(file_path, eval_metrics):
             'span': ['Ent-Span-Pred'],
             'ent': ['Ent-True', 'Ent-Pred'],
             'rel': ['Rel-True', 'Rel-Pred'],
-            'exact-rel': ['Rel-True', 'Rel-Pred']
+            'exact-rel': ['Rel-True', 'Rel-Pred'],
+            'overlap-rel': ['Rel-True', 'Rel-Pred']
         }
         labels = set()
         for metric in eval_metrics:
@@ -193,7 +194,72 @@ def evaluate(sent, counts, label2idx):
             pred_correct_rel_cnt = len(correct_rel2idx[rel] & pred_rel2idx[rel])
             counts['rel'].pred_correct_cnt += pred_correct_rel_cnt
             counts['rel'].pred_correct_types_cnt[rel] += pred_correct_rel_cnt
+    # overlap relation evaluation
+    '''
+    correct_span2ent: the span of entities to the type of entities.
+    
+    overlap realtion evaluation only pay attention to the text and the typy of the entities.
+    '''
+    def get_overlap(s1, s2):
+        s = difflib.SequenceMatcher(None, s1, s2)
+        pos_a, pos_b , size = s.find_longest_match(0, len(s1), 0, len(s2))
+        return size
+    def cal(correct_set, pred_set, p = cfg.overlap_match_rate):
+        vis = []
+        cnt = 0
+        for pred in pred_set:
+            for idx, correct in enumerate(correct_set):
 
+                if pred[1] != correct[1] or pred[3] != correct[3]:
+                    continue
+                if idx in vis:
+                    continue
+                is_cnt = True
+                if get_overlap(pred[0].replace(' ', ''), correct[0].replace(' ', '')) < p*len(correct[0].replace(' ', '')):
+                    is_cnt = False
+                if get_overlap(pred[2].replace(' ', ''), correct[2].replace(' ', '')) < p*len(correct[2].replace(' ', '')):
+                    is_cnt = False
+                if is_cnt:
+                    cnt += 1
+                    vis.append(idx)
+                    break
+        return cnt
+
+    if 'overlap-rel' in counts:
+        overlap_correct_rel2idx = defaultdict(set)
+        for rel, span1, span2, text1, text2 in sent[label2idx['Rel-True']]:
+            if span1 not in correct_span2ent or span2 not in correct_span2ent:
+                continue
+            # overlap_correct_rel2idx[rel].add((  text1,  
+            #                                     text2, ))
+            overlap_correct_rel2idx[rel].add((  text1, correct_span2ent[span1], 
+                                                text2, correct_span2ent[span2]))
+            # overlap_correct_rel2idx[rel].add((  correct_span2ent[span1], 
+            #                                     correct_span2ent[span2]))
+
+        overlap_pred_rel2idx = defaultdict(set)
+        for rel, span1, span2, text1, text2 in sent[label2idx['Rel-Pred']]:
+            if span1 not in pred_span2ent or span2 not in pred_span2ent:
+                continue
+            overlap_pred_rel2idx[rel].add(( text1, pred_span2ent[span1], 
+                                            text2, pred_span2ent[span2]))
+            # overlap_pred_rel2idx[rel].add(( text1,  
+            #                                 text2, ))
+            # overlap_pred_rel2idx[rel].add(( pred_span2ent[span1], 
+            #                                 pred_span2ent[span2]))
+        all_overlap_rels = set(overlap_correct_rel2idx) | set(overlap_pred_rel2idx)
+                
+        for rel in all_overlap_rels:
+            counts['overlap-rel'].correct_cnt += len(overlap_correct_rel2idx[rel])
+            counts['overlap-rel'].correct_types_cnt[rel] += len(overlap_correct_rel2idx[rel])
+            counts['overlap-rel'].pred_cnt += len(overlap_pred_rel2idx[rel])
+            counts['overlap-rel'].pred_types_cnt[rel] += len(overlap_pred_rel2idx[rel])
+            
+            # overlap_pred_correct_rel_cnt = len(overlap_correct_rel2idx[rel] & overlap_pred_rel2idx[rel])
+            overlap_pred_correct_rel_cnt = cal(overlap_correct_rel2idx[rel], overlap_pred_rel2idx[rel])
+            counts['overlap-rel'].pred_correct_cnt += overlap_pred_correct_rel_cnt
+            counts['overlap-rel'].pred_correct_types_cnt[rel] += overlap_pred_correct_rel_cnt
+            
     # exact relation evaluation
     if 'exact-rel' in counts:
         exact_correct_rel2idx = defaultdict(set)

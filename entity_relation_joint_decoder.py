@@ -1,13 +1,22 @@
 from collections import defaultdict
 import json
 import os
-import random
 import logging
 import time
 
+SEED = 5216
+import random
+random.seed(SEED)
+
+import numpy as np
+np.random.seed(SEED)
+
 import torch
 import torch.nn as nn
-import numpy as np
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+
 from transformers import BertTokenizer, AutoTokenizer, AdamW, get_linear_schedule_with_warmup
 
 from utils.argparse import ConfigurationParer
@@ -135,14 +144,15 @@ def train(cfg, dataset, model):
                     early_stop_cnt = 0
                     best_f1 = dev_f1
                     logger.info("Save model...")
-                    torch.save(model.state_dict(), open(cfg.best_model_path, "wb"))
+                    #torch.save(model.state_dict(), open(cfg.best_model_path, "wb"))
+                    torch.save(model.state_dict())
                 elif last_epoch != epoch:
                     early_stop_cnt += 1
                     if early_stop_cnt > cfg.early_stop:
                         logger.info("Early Stop: best F1 score: {:6.2f}%".format(100 * best_f1))
                         break
         if epoch > cfg.epochs:
-            torch.save(model.state_dict(), open(cfg.last_model_path, "wb"))
+            #torch.save(model.state_dict(), open(cfg.last_model_path, "wb"))
             logger.info("Training Stop: best F1 score: {:6.2f}%".format(100 * best_f1))
             break
 
@@ -172,7 +182,8 @@ def train(cfg, dataset, model):
             scheduler.step()
             model.zero_grad()
 
-    state_dict = torch.load(open(cfg.best_model_path, "rb"), map_location=lambda storage, loc: storage)
+    #state_dict = torch.load(open(cfg.best_model_path, "rb"), map_location=lambda storage, loc: storage)
+    state_dict = torch.load(cfg.best_model_path)
     model.load_state_dict(state_dict)
     test(cfg, dataset, model)
 
@@ -233,9 +244,10 @@ def main():
     logger.info(parser.format_values())
 
     # set random seed
-    random.seed(cfg.seed)
-    torch.manual_seed(cfg.seed)
-    np.random.seed(cfg.seed)
+    # random.seed(cfg.seed)
+    # torch.manual_seed(cfg.seed)
+    # np.random.seed(cfg.seed)
+
     if cfg.device > -1 and not torch.cuda.is_available():
         logger.error('config conflicts: no gpu available, use cpu for training.')
         cfg.device = -1
@@ -312,7 +324,8 @@ def main():
     model = EntRelJointDecoder(cfg=cfg, vocab=vocab, ent_rel_file=ent_rel_file)
 
     if cfg.test and os.path.exists(cfg.best_model_path):
-        state_dict = torch.load(open(cfg.best_model_path, 'rb'), map_location=lambda storage, loc: storage)
+        #state_dict = torch.load(open(cfg.best_model_path, 'rb'), map_location=lambda storage, loc: storage)
+        state_dict = torch.load(cfg.best_model_path)
         model.load_state_dict(state_dict)
         logger.info("Loading best training model {} successfully for testing.".format(cfg.best_model_path))
 

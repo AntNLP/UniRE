@@ -119,7 +119,11 @@ class ACEReaderForJointDecoding():
                 .format(line['articleId'], line['sentId']))
             return False, results
 
-        wordpiece_tokens = line['wordpieceSentText'].strip().split(' ')
+        if 'wordpiece_tokens' in line:
+            wordpiece_tokens = line['wordpiece_tokens']
+        else:
+            wordpiece_tokens = line['wordpieceSentText'].strip().split(' ')
+
         results['wordpiece_tokens'] = wordpiece_tokens
         results['wordpiece_tokens_index'] = [span[0] for span in line['wordpieceTokensIndex']]
         results['wordpiece_segment_ids'] = list(line['wordpieceSegmentIds'])

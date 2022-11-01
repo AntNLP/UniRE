@@ -88,6 +88,10 @@ class ConfigurationParer():
                   default=0.1,
                   help='logit dropout rate for robustness.')
 
+        # loss
+        group = self.parser.add_argument_group('Loss')
+        group.add('--label_imbalance', '--label_imbalance', action='store_true', help='add label_imbalance processing in element loss.')
+
     def add_optimizer_cfgs(self):
         """This function adds optimizer arguments
         """

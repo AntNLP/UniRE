@@ -30,6 +30,7 @@ class EntRelJointDecoder(nn.Module):
         self.activation = nn.GELU()
         self.device = cfg.device
         self.separate_threshold = cfg.separate_threshold
+        self.label_imbalance = cfg.label_imbalance
 
         if cfg.embedding_model == 'bert':
             self.embedding_model = BertEmbedModel(cfg, vocab)
@@ -68,7 +69,21 @@ class EntRelJointDecoder(nn.Module):
             self.ent_label = self.ent_label.cuda(device=self.device, non_blocking=True)
             self.rel_label = self.rel_label.cuda(device=self.device, non_blocking=True)
 
-        self.element_loss = nn.CrossEntropyLoss()
+        self.element_loss = nn.CrossEntropyLoss(reduction='none')
+
+        # for label imbalance
+        if self.label_imbalance:
+            assert 'None' in ent_rel_file['id']
+            self.none_id, self.ent_ids, self.rel_ids = ent_rel_file['id']['None'], ent_rel_file['entity'], ent_rel_file['relation']
+
+            if self.ent_ids:
+                assert sum(self.ent_ids) == \
+                            ((self.ent_ids[0] + self.ent_ids[-1]) / 2) * len(self.ent_ids), \
+                            "Entity ids must be sequential."
+            if self.rel_ids:
+                assert sum(self.rel_ids) == \
+                            ((self.rel_ids[0] + self.rel_ids[-1]) / 2) * len(self.rel_ids), \
+                            "Relation ids must be sequential."
 
     def forward(self, batch_inputs):
         """forward
@@ -114,22 +129,60 @@ class EntRelJointDecoder(nn.Module):
 
             return results
 
+        # Element loss
+        gold_matrix = batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']]
         results['element_loss'] = self.element_loss(
             self.logit_dropout(batch_joint_score[batch_inputs['joint_label_matrix_mask']]),
-            batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']])
+            gold_matrix)
 
-        batch_rel_normalized_joint_score = torch.max(batch_normalized_joint_score[..., self.rel_label], dim=-1).values
-        batch_diag_ent_normalized_joint_score = torch.max(
-            batch_normalized_joint_score[..., self.ent_label].diagonal(0, 1, 2),
-            dim=1).values.unsqueeze(-1).expand_as(batch_rel_normalized_joint_score)
+        # Add label imbalance in element loss
+        if not self.label_imbalance:
+            results['element_loss'] = results['element_loss'].sum() / (gold_matrix > 0).sum()
+        else:
+            # Relation label loss
+            results['rel_loss'] = 0
+            rel_weight = torch.zeros_like(gold_matrix, dtype=torch.float32)
+            if len(self.rel_ids) > 0:
+                rel_weight[(gold_matrix >= self.rel_ids[0]) & (gold_matrix <= self.rel_ids[-1])] = 1
+                if 1 in rel_weight:
+                    results['rel_loss'] = (results['element_loss'] * rel_weight).sum() / rel_weight.sum()
 
-        results['implication_loss'] = (
-            torch.relu(batch_rel_normalized_joint_score - batch_diag_ent_normalized_joint_score).sum(dim=2) +
-            torch.relu(batch_rel_normalized_joint_score.transpose(1, 2) - batch_diag_ent_normalized_joint_score).sum(
-                dim=2))[batch_inputs['joint_label_matrix_mask'][..., 0]].mean()
+            # None label loss
+            results['none_loss'] = 0
+            none_weight = torch.zeros_like(gold_matrix, dtype=torch.float32)
+            none_weight[gold_matrix == self.none_id] = 1
+            if 1 in none_weight:
+                results['none_loss'] = (results['element_loss'] * none_weight).sum() / none_weight.sum()
+            
+            # Entity label loss
+            results['ent_loss'] = 0
+            ent_weight = torch.where((rel_weight + none_weight) > 0, 0, 1)
+            if 1 in ent_weight:
+                results['ent_loss'] = (results['element_loss'] * ent_weight).sum() / ent_weight.sum()
 
+            logger.info("rel_loss: {}, ent_loss: {}, none_loss: {}".format(results['rel_loss'], results['ent_loss'], results['none_loss']))
+            results['element_loss'] = results['rel_loss'] + results['none_loss'] + results['ent_loss']
+
+        # results['element_loss'] = self.element_loss(
+        #     self.logit_dropout(batch_joint_score[batch_inputs['joint_label_matrix_mask']]),
+        #     batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']])
+
+        # Implication loss
+        if len(self.rel_label) == 0:
+            results['implication_loss'] = torch.zeros_like(results['element_loss'])
+        else:
+            batch_rel_normalized_joint_score = torch.max(batch_normalized_joint_score[..., self.rel_label], dim=-1).values
+            batch_diag_ent_normalized_joint_score = torch.max(
+                batch_normalized_joint_score[..., self.ent_label].diagonal(0, 1, 2),
+                dim=1).values.unsqueeze(-1).expand_as(batch_rel_normalized_joint_score)
+
+            results['implication_loss'] = (
+                torch.relu(batch_rel_normalized_joint_score - batch_diag_ent_normalized_joint_score).sum(dim=2) +
+                torch.relu(batch_rel_normalized_joint_score.transpose(1, 2) - batch_diag_ent_normalized_joint_score).sum(
+                    dim=2))[batch_inputs['joint_label_matrix_mask'][..., 0]].mean()
+
+        # Symmetric loss
         batch_symmetric_normalized_joint_score = batch_normalized_joint_score[..., self.symmetric_label]
-
         results['symmetric_loss'] = torch.abs(batch_symmetric_normalized_joint_score -
                                               batch_symmetric_normalized_joint_score.transpose(1, 2)).sum(
                                                   dim=-1)[batch_inputs['joint_label_matrix_mask']].mean()

@@ -48,6 +48,7 @@ python entity_relation_joint_decoder.py \
     --device 0
 ```
 
+Modifying the configuration can also be achieved by writing to the configuration file `config.yml`, in addition to declaring directly in the command as above.
 Note that a GPU with 32G is required to run the default setting. 
 If **OOM** occurs, we suggest that reducing `train_batch_size` and increasing `gradient_accumulation_steps` (`gradient_accumulation_steps` is used to perform *Gradient Accumulation*). 
 

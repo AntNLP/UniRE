@@ -42,7 +42,9 @@ def check_output(file_path):
         else:
             words = line
             while idx+1 < len(lines) and len(lines[idx+1]) != 0 and lines[idx+1][0] == ' ':
-                words += lines[idx+1].strip('\r\n')
+                words = words + '&' + lines[idx+1].strip('\r\n')
+                # replace '\n' as '&', but it may cause some bugs.
+                # we will change our output form later.
                 idx+=1
             print(words)
             fout.write(words + '\n')

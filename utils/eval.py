@@ -4,10 +4,11 @@ import sys
 
 from requests import get
 
-from utils.string_utils import get_overlap
+from utils.string_utils import get_overlap, check_output
 
 logger = logging.getLogger(__name__)
 
+metric2labels = {}
 
 class EvalCounts():
     """This class is evaluating counters
@@ -96,12 +97,8 @@ def eval_file(file_path, eval_metrics, cfg):
     Returns:
         tuple: results
     """
-    lines = []
-    lines_len = 0
+    check_output(file_path)
     
-    with open(file_path, 'r') as fin:
-        lines = fin.readlines()
-        lines_len = len(lines)
     with open(file_path, 'r') as fin:
         sents = []
         metric2labels = {
@@ -120,7 +117,6 @@ def eval_file(file_path, eval_metrics, cfg):
             labels.update(metric2labels[metric])
         label2idx = {label: idx for idx, label in enumerate(labels)}
         sent = [[] for _ in range(len(labels))]
-        idx = 0
         for line in fin:
             line = line.strip('\r\n')
             if line == "":
@@ -128,10 +124,6 @@ def eval_file(file_path, eval_metrics, cfg):
                 sent = [[] for _ in range(len(labels))]
             else:
                 words = line
-                k = idx
-                while k+1 < lines_len and len(lines[k+1]) != 0 and lines[k+1][0] == ' ':
-                    words += lines[k+1].strip('\r\n')
-                    k+=1
                 words = words.split('\t')
                 if words[0] in ['Sequence-Label-True', 'Sequence-Label-Pred', 'Joint-Label-True', 'Joint-Label-Pred']:
                     sent[label2idx[words[0]]].extend(words[1].split(' '))
@@ -147,7 +139,6 @@ def eval_file(file_path, eval_metrics, cfg):
                                                         eval(words[3]), 
                                                         words[4],
                                                         words[5]])
-            idx+=1
         sents.append(sent)
 
     counts = {metric: EvalCounts() for metric in eval_metrics}

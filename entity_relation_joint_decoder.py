@@ -204,8 +204,8 @@ def dev(cfg, dataset, model):
     logger.info(f"Cost time: {cost_time}s")
     dev_output_file = os.path.join(cfg.save_dir, "dev.output")
     print_predictions_for_joint_decoding(all_outputs, dev_output_file, dataset.vocab)
-    eval_metrics = ['joint-label', 'separate-position', 'ent', 'exact-rel']
-    joint_label_score, separate_position_score, ent_score, exact_rel_score = eval_file(dev_output_file, eval_metrics)
+    eval_metrics = ['joint-label', 'separate-position', 'ent', 'exact-rel', 'overlap-rel']
+    joint_label_score, separate_position_score, ent_score, exact_rel_score, overlap_rel_score = eval_file(dev_output_file, eval_metrics)
     return ent_score + exact_rel_score
 
 
@@ -227,7 +227,7 @@ def test(cfg, dataset, model):
 
     test_output_file = os.path.join(cfg.save_dir, "test.output")
     print_predictions_for_joint_decoding(all_outputs, test_output_file, dataset.vocab)
-    eval_metrics = ['joint-label', 'separate-position', 'ent', 'exact-rel']
+    eval_metrics = ['joint-label', 'separate-position', 'ent', 'exact-rel', 'overlap-rel']
     eval_file(test_output_file, eval_metrics)
 
 

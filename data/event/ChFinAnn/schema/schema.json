@@ -1,0 +1,96 @@
+{
+    "EquityPledge": 
+    {
+        "args" : ["Pledger", "PledgedShares", "Pledgee", "TotalHoldingShares",
+                "TotalHoldingRatio", "TotalPledgedShares", "StartDate", "EndDate", "ReleasedDate"],
+        "primary_args": ["Pledger", "PledgedShares", "Pledgee"],
+        "event_relations": [
+            ["Pledger", "PledgedShares"],
+            ["Pledger", "Pledgee"],
+            ["Pledger", "TotalHoldingShares"],
+            ["Pledger", "TotalHoldingRatio"],
+            ["Pledger", "TotalPledgedShares"],
+            ["Pledger", "StartDate"],
+            ["Pledger", "EndDate"],
+            ["Pledger", "ReleasedDate"],
+            ["PledgedShares", "Pledgee"],
+            ["PledgedShares", "StartDate"],
+            ["PledgedShares", "EndDate"],
+            ["PledgedShares", "ReleasedDate"],
+            ["Pledgee", "StartDate"],
+            ["Pledgee", "EndDate"],
+            ["Pledges", "ReleasedDate"],
+            ["TotalHoldingShares", "TotalHoldingRatio"],
+            ["TotalHoldingShares", "TotalPledgedShares"]]
+    },
+    "EquityUnderweight": 
+    {
+        "args" : ["EquityHolder", "TradedShares",
+            "StartDate", "EndDate", "LaterHoldingShares", "AveragePrice"],
+        "primary_args": ["EquityHolder", "TradedShares"],
+        "event_relations": [
+            ["EquityHolder", "TradedShares"],
+            ["EquityHolder", "StartDate"],
+            ["EquityHolder", "EndDate"],
+            ["EquityHolder", "LaterHoldingShares"],
+            ["EquityHolder", "AveragePrice"],
+            ["TradedShares", "StartDate"],
+            ["TradedShares", "EndDate"],
+            ["TradedShares", "AveragePrice"],
+            ["LaterHoldingShares", "AveragePrice"]]
+    },
+    "EquityOverweight": 
+    {
+        "args" : ["EquityHolder", "TradedShares",
+            "StartDate", "EndDate", "LaterHoldingShares", "AveragePrice"],
+        "primary_args": ["EquityHolder", "TradedShares"],
+        "event_relations": [
+            ["EquityHolder", "TradedShares"],
+            ["EquityHolder", "StartDate"],
+            ["EquityHolder", "EndDate"],
+            ["EquityHolder", "LaterHoldingShares"],
+            ["EquityHolder", "AveragePrice"],
+            ["TradedShares", "StartDate"],
+            ["TradedShares", "EndDate"],
+            ["TradedShares", "AveragePrice"],
+            ["LaterHoldingShares", "AveragePrice"]]
+    },
+    "EquityRepurchase": 
+    {
+        "args" : ["CompanyName", "HighestTradingPrice",
+            "LowestTradingPrice", "RepurchasedShares",
+            "ClosingDate", "RepurchaseAmount"],
+        "primary_args": ["CompanyName"],
+        "event_relations": [
+            ["CompanyName", "HighestTradingPrice"],
+            ["CompanyName", "LowestTradingPrice"],
+            ["CompanyName", "RepurchasedShares"],
+            ["CompanyName", "ClosingDate"],
+            ["CompanyName", "RepurchaseAmount"],
+            ["HighestTradingPrice", "LowestTradingPrice"],
+            ["HighestTradingPrice", "RepurchasedShares"],
+            ["LowestTradingPrice", "RepurchasedShares"],
+            ["RepurchasedShares", "ClosingDate"],
+            ["RepurchasedShares", "RepurchaseAmount"]]
+    },
+    "EquityFreeze": 
+    {
+        "args" : ["EquityHolder", "FrozeShares", "LegalInstitution",
+            "TotalHoldingShares", "TotalHoldingRatio", "StartDate",
+            "EndDate", "UnfrozeDate"],
+        "primary_args": ["EquityHolder", "FrozeShares", "LegalInstitution"],
+        "event_relations": [
+            ["EquityHolder", "FrozeShares"],
+            ["EquityHolder", "LegalInstitution"],
+            ["EquityHolder", "TotalHoldingShares"],
+            ["EquityHolder", "TotalHoldingRatio"],
+            ["EquityHolder", "StartDate"],
+            ["EquityHolder", "EndDate"],
+            ["EquityHolder", "UnfrozeDate"],
+            ["FrozeShares", "LegalInstitution"],
+            ["FrozeShares", "StartDate"],
+            ["FrozeShares", "EndDate"],
+            ["FrozeShares", "UnfrozeDate"],
+            ["TotalHoldingShares", "TotalHoldingRatio"]]
+    }
+}

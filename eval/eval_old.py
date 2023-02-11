@@ -45,7 +45,7 @@ def check_output(file_path):
     idx = 0
     while idx < len(lines):
         line = lines[idx].strip('\r\n')
-        print(idx)
+        #print(idx)
         if line == "":
             fout.write('\n')
         else:
@@ -55,7 +55,7 @@ def check_output(file_path):
                 # replace '\n' as '&', but it may cause some bugs.
                 # we will change our output form later.
                 idx+=1
-            print(words)
+            #print(words)
             fout.write(words + '\n')
         idx += 1
         
@@ -146,7 +146,7 @@ def eval_file(file_path, eval_metrics, cfg):
     Returns:
         tuple: results
     """
-    check_output(file_path)
+    #check_output(file_path)
     
     with open(file_path, 'r') as fin:
         sents = []
@@ -328,7 +328,7 @@ def evaluate(sent, counts, label2idx, cfg):
     
     overlap realtion evaluation only pay attention to the text and the typy of the entities.
     '''
-    
+    '''
     if 'overlap-ent' in counts:
         overlap_correct_ent2idx = defaultdict(set)
         for ent, span, text in sent[label2idx['Ent-True']]:
@@ -355,7 +355,7 @@ def evaluate(sent, counts, label2idx, cfg):
                                                             'ent')
             counts['overlap-ent'].pred_correct_cnt += overlap_pred_correct_ent_cnt
             counts['overlap-ent'].pred_correct_types_cnt[ent] += overlap_pred_correct_ent_cnt
-            
+    '''
             
     # overlap relation evaluation
     '''
@@ -363,7 +363,7 @@ def evaluate(sent, counts, label2idx, cfg):
     
     overlap realtion evaluation only pay attention to the text and the typy of the entities.
     '''
-
+    '''
     if 'overlap-rel' in counts:
         overlap_correct_rel2idx = defaultdict(set)
         for rel, span1, span2, text1, text2 in sent[label2idx['Rel-True']]:
@@ -394,6 +394,7 @@ def evaluate(sent, counts, label2idx, cfg):
                                                             'rel')
             counts['overlap-rel'].pred_correct_cnt += overlap_pred_correct_rel_cnt
             counts['overlap-rel'].pred_correct_types_cnt[rel] += overlap_pred_correct_rel_cnt
+    '''
 
     # exact relation evaluation
     if 'exact-rel' in counts:
@@ -437,7 +438,7 @@ def report(counts):
     logger.info("recall: {:6.2f}%".format(100 * r))
     logger.info("f1: {:6.2f}%".format(100 * f))
 
-    score = (p, r, f)
+    score = f
 
     for type in counts.pred_correct_types_cnt:
         p, r, f = calculate_metrics(counts.pred_correct_types_cnt[type], counts.pred_types_cnt[type],

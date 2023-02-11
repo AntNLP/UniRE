@@ -130,14 +130,14 @@ class EntRelJointDecoder(nn.Module):
             return results
 
         # Element loss
-        gold_matrix = batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']]
         results['element_loss'] = self.element_loss(
-            self.logit_dropout(batch_joint_score[batch_inputs['joint_label_matrix_mask']]),
-            gold_matrix)
+            self.logit_dropout(batch_joint_score[batch_inputs['joint_label_matrix_mask']]), batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']])
 
         # Add label imbalance in element loss
+        gold_matrix = batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']]
         if not self.label_imbalance:
-            results['element_loss'] = results['element_loss'].sum() / (gold_matrix > 0).sum()
+            element_cnt = (gold_matrix >= 0).sum()
+            results['element_loss'] = (results['element_loss'].sum() / element_cnt) if element_cnt > 0 else 0
         else:
             # Relation label loss
             results['rel_loss'] = 0
@@ -162,10 +162,6 @@ class EntRelJointDecoder(nn.Module):
 
             logger.info("rel_loss: {}, ent_loss: {}, none_loss: {}".format(results['rel_loss'], results['ent_loss'], results['none_loss']))
             results['element_loss'] = results['rel_loss'] + results['none_loss'] + results['ent_loss']
-
-        # results['element_loss'] = self.element_loss(
-        #     self.logit_dropout(batch_joint_score[batch_inputs['joint_label_matrix_mask']]),
-        #     batch_inputs['joint_label_matrix'][batch_inputs['joint_label_matrix_mask']])
 
         # Implication loss
         if len(self.rel_label) == 0:

@@ -39,11 +39,11 @@ The `pred_file` and `gold_file` are in the following jsonline format,
   "id": 0,
   "text": "abcdefg",
   "entity": [
-    {"ent_id" = 0, "type": "ent_type_1", "offset": [0, 1], "text": "a"},
-    {"ent_id" = 1, "type": "ent_type_2", "offset": [1, 2], "text": "b"},
-    {"ent_id" = 2, "type": "ent_type_1", "offset": [2, 4], "text": "cd"},
-    {"ent_id" = 3, "type": "ent_type_2", "offset": [4, 5], "text": "e"},
-    {"ent_id" = 4, "type": "ent_type_3", "offset": [5, 7], "text": "fg"}
+    {"ent_id": 0, "type": "ent_type_1", "offset": [0, 1], "text": "a"},
+    {"ent_id": 1, "type": "ent_type_2", "offset": [1, 2], "text": "b"},
+    {"ent_id": 2, "type": "ent_type_1", "offset": [2, 4], "text": "cd"},
+    {"ent_id": 3, "type": "ent_type_2", "offset": [4, 5], "text": "e"},
+    {"ent_id": 4, "type": "ent_type_3", "offset": [5, 7], "text": "fg"}
   ],
   "relation": [{
       "type": "rel_type_1",

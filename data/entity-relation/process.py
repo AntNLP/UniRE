@@ -1,3 +1,4 @@
+import os
 import json
 import fire
 
@@ -93,18 +94,12 @@ def add_joint_label(sent, ent_rel_info):
     ent2offset = {}
     for ent in sent['entityMentions']:
         ent2offset[ent['emId']] = ent['offset']
-        label_matrix[ent['offset'][0]: ent['offset'][1]][ent['offset'][0]: ent['offset'][1]] = ent_rel_id[ent['label']]
-
+        label_matrix[ent['offset'][0]: ent['offset'][1]][:, ent['offset'][0]: ent['offset'][1]] = ent_rel_id[ent['label']]
+    
     for rel in sent['relationMentions']:
-        label_matrix[ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]][ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]] = ent_rel_id[rel['label']]
+        label_matrix[ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]][:, ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]] = ent_rel_id[rel['label']]
         if ent_rel_id[rel['label']] in ent_rel_info['symmetric']:
-            label_matrix[ent2offset[ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]][rel['em1Id']][0]: ent2offset[rel['em1Id']][1]] = ent_rel_id[rel['label']]
-
-        # for i in range(ent2offset[rel['em1Id']][0], ent2offset[rel['em1Id']][1]):
-        #     for j in range(ent2offset[rel['em2Id']][0], ent2offset[rel['em2Id']][1]):
-        #         label_matrix[i][j] = ent_rel_id[rel['label']]
-        #         if ent_rel_id[rel['label']] in ent_rel_info['symmetric']:
-        #             label_matrix[j][i] = ent_rel_id[rel['label']]
+            label_matrix[ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]][:, ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]] = ent_rel_id[rel['label']]
 
     sent['jointLabelMatrix'] = label_matrix.tolist()
 
@@ -130,17 +125,10 @@ def add_joint_label_with_BItag(sent, ent_rel_info):
         ent['label'] = "B-" + ent['label']
 
     for rel in sent['relationMentions']:
-        # for i in range(ent2offset[rel['em1Id']][0], ent2offset[rel['em1Id']][1]):
-        #     for j in range(ent2offset[rel['em2Id']][0], ent2offset[rel['em2Id']][1]):
-        #         #assert label_matrix[i][j] == 0, "Exist relation overlapping!"
-        #         label_matrix[i][j] = ent_rel_info['id'][rel['label']]
-        #         if ent_rel_info['id'][rel['label']] in ent_rel_info['symmetric']:
-        #             label_matrix[j][i] = ent_rel_info['id'][rel['label']]
-                
-        label_matrix[ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]][ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]] = ent_rel_info['id'][rel['label']]
+        label_matrix[ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]][:, ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]] = ent_rel_info['id'][rel['label']]
         if ent_rel_info['id'][rel['label']] in ent_rel_info['symmetric']:
-            label_matrix[ent2offset[ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]][rel['em1Id']][0]: ent2offset[rel['em1Id']][1]] = ent_rel_info['id'][rel['label']]
-
+            label_matrix[ent2offset[rel['em2Id']][0]: ent2offset[rel['em2Id']][1]][:, ent2offset[rel['em1Id']][0]: ent2offset[rel['em1Id']][1]] = ent_rel_info['id'][rel['label']]
+    
     sent['jointLabelMatrix'] = label_matrix.tolist()
 
 def add_wordpiece_fields(sent, tokenizer):
@@ -167,7 +155,7 @@ def add_wordpiece_fields(sent, tokenizer):
     wordpiece_segment_ids = [0] * len(wordpiece_tokens)
     assert len(wordpiece_tokens) == len(wordpiece_segment_ids)
     
-    sent['wordpiece_tokens'] = wordpiece_tokens
+    sent['wordpieceSentText'] = wordpiece_tokens
     sent['wordpieceTokensIndex'] = wordpiece_tokens_index
     sent['wordpieceSegmentIds'] = wordpiece_segment_ids
     return sent
@@ -248,7 +236,7 @@ def get_ent_rel_file(ent_rel_file, data_file_path, data_parts=['train.json', 'de
                         
                         print(json.dumps(ins, ensure_ascii=False), file=fout)
 
-def process(source_file, ent_rel_file, target_file, pretrained_model, max_length=200, standard=True):
+def process(source_file, ent_rel_file, target_file, pretrained_model, max_length=200, cross_sentence=False):
     auto_tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
     print("Load {} tokenizer successfully.".format(pretrained_model))
 
@@ -259,14 +247,12 @@ def process(source_file, ent_rel_file, target_file, pretrained_model, max_length
     with open(ent_rel_file, 'r', encoding='utf-8') as f:
         ent_rel_info = json.load(f)
     
-    if not os.path.exists(os.path.dirname(target_file)):
-        os.mkdir(os.path.dirname(target_file))
-
     with open(source_file, 'r', encoding='utf-8') as fin, open(target_file, 'w', encoding='utf-8') as fout:
         # given datasets should conform to the standard setting, such as ACE2005, SciERC
-        if standard:
+        if cross_sentence:
             sentences = []
-            for line in fin:
+            for i, line in enumerate(fin):
+                print(f"Process Standard dataset Line{i + 1}")
                 sent = json.loads(line.strip())
 
                 if len(sentences) == 0 or sentences[0]['articleId'] == sent['articleId']:
@@ -284,11 +270,11 @@ def process(source_file, ent_rel_file, target_file, pretrained_model, max_length
         # processing other datasets
         else:
             for i, line in enumerate(fin):
-                print(f"Process Line{i + 1}")
+                print(f"Process other dataset Line{i + 1}")
                 sent = json.loads(line.strip())
                 
                 add_wordpiece_fields(sent, auto_tokenizer)
-                add_joint_label(sent, ent_rel_id)
+                add_joint_label(sent, ent_rel_info)
                 
                 print(json.dumps(sent, ensure_ascii=False), file=fout)
                 

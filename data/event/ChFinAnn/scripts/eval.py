@@ -143,6 +143,7 @@ if __name__ == '__main__':
     cmd_parser.add_argument("gold_file", help="gold file")
     cmd_parser.add_argument("-p", "--overlap_propotion", metavar="FLOAT",
             help="a predicted span is correct if it overlaps with p of a gold span (default 1.0)",
+            type=float,
             default=1.0)
     cmd_parser.add_argument("-t", "--filter_type", metavar="TYPE",
             help="ignore entities belong to those types during evaluation (default None)",
@@ -157,6 +158,6 @@ if __name__ == '__main__':
 
     cmds = cmd_parser.parse_args()
 
-    logging.basicConfig(filename=os.path.basename(cmds.pred_file)+'_evt.res',
+    logging.basicConfig(filename=os.path.basename(cmds.pred_file)+'.evt.log',
             encoding='utf-8', level=logging.DEBUG)
     main()

@@ -194,7 +194,16 @@ class ConfigurationParer():
                   '--device',
                   type=int,
                   default=-1,
-                  help='cpu: device = -1, gpu: gpu device id(device >= 0).')
+                  help='cpu: device = -1, gpu: gpu device id(device >= 0).')    
+        
+        # evaluation configurations
+        group = self.parser.add_argument_group('Eval')
+        group.add('-eval_type',
+                  '--eval_type',
+                  type=str,
+                  choices=["train", "debug"],
+                  default="train",
+                  help="evaluation type, 'train' or 'debug'")
 
         # logging configurations
         group = self.parser.add_argument_group('logging')
@@ -242,14 +251,13 @@ class ConfigurationParer():
         if not os.path.exists(cfg.model_checkpoints_dir):
             os.makedirs(cfg.model_checkpoints_dir)
 
-        assert os.path.exists(cfg.data_dir), f"dataset directory {cfg.data_dir} not exists !!!"
+        assert os.path.exists(cfg.data_dir), f"dataset directory {cfg.data_dir} Not Exists!!!"
         for file in ['train_file', 'dev_file', 'test_file', 'ent_rel_file']:
             if getattr(cfg, file, None) is not None:
                 setattr(cfg, file, os.path.join(cfg.data_dir, getattr(cfg, file, None)))
 
         if getattr(cfg, 'log_file', None) is not None:
             cfg.log_file = os.path.join(cfg.save_dir, cfg.log_file)
-            assert not os.path.exists(cfg.log_file), f"log file {cfg.log_file} exists !!!"
 
         init_logger(root_log_level=getattr(cfg, 'root_log_level', logging.DEBUG),
                     console_log_level=getattr(cfg, 'console_log_level', logging.NOTSET),
